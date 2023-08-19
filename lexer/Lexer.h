@@ -4,13 +4,16 @@
 #include <map>
 #include <vector>
 #include <queue>
-#include "Token.h"
 #include <stdexcept>
+#include <regex>
+#include <iostream>
+
+#include "Token.h"
 
 class Lexer {
 public:
     static const std::map<std::string, TokenType> keywords;
-    static std::queue<Token> tokenize(std::string &src, bool js);
+    static std::queue<Token> tokenize(const std::string &src, bool js);
 
     Lexer();
 };

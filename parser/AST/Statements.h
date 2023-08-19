@@ -1,7 +1,3 @@
-//
-// Created by Armin on 16.08.2023.
-//
-
 #ifndef BOSSCRIPT_STATEMENTS_H
 #define BOSSCRIPT_STATEMENTS_H
 
@@ -26,26 +22,27 @@ public:
 
 class Program : public Statement {
 public:
-    std::vector<Statement> body;
+    std::vector<std::unique_ptr<Statement>> body;
 
-    explicit Program(const std::vector<Statement>& body) : Statement(NodeType::Program), body(body){}
+    explicit Program(std::vector<std::unique_ptr<Statement>> body) : Statement(NodeType::Program), body(std::move(body)) {}
 };
+
 
 class BlockStatement : public Statement {
 public:
-    std::vector<Statement> body;
+    std::vector<std::unique_ptr<Statement>> body;
 
-    explicit BlockStatement(const std::vector<Statement>& body) : Statement(NodeType::Block), body(body){}
+    explicit BlockStatement(std::vector<std::unique_ptr<Statement>> body) : Statement(NodeType::Block), body(std::move(body)) {}
 };
 
 class TryCatchStatement : public Statement {
 public:
-    BlockStatement tryBlock;
-    BlockStatement catchBlock;
-    BlockStatement* finallyBlock;
+    std::unique_ptr<BlockStatement> tryBlock;
+    std::unique_ptr<BlockStatement> catchBlock;
+    std::unique_ptr<BlockStatement> finallyBlock;
 
-    TryCatchStatement(NodeType kind, BlockStatement tryBlock, BlockStatement catchBlock, BlockStatement* finallyBlock)
-            : Statement(kind), tryBlock(std::move(tryBlock)), catchBlock(std::move(catchBlock)), finallyBlock(finallyBlock) {}
+    TryCatchStatement(std::unique_ptr<BlockStatement> tryBlock, std::unique_ptr<BlockStatement> catchBlock, std::unique_ptr<BlockStatement> finallyBlock)
+            : Statement(NodeType::TryCatch), tryBlock(std::move(tryBlock)), catchBlock(std::move(catchBlock)), finallyBlock(std::move(finallyBlock)) {}
 };
 
 class TypeAnnotation : public Statement {
@@ -59,138 +56,152 @@ public:
 
 class FunctionParameter : public Statement {
 public:
-    Identifier identifier;
-    TypeAnnotation* typeAnnotation;
+    std::unique_ptr<Identifier> identifier;
+    std::unique_ptr<TypeAnnotation> typeAnnotation;
 
-    FunctionParameter(Identifier identifier, TypeAnnotation* typeAnnotation)
-        : Statement(NodeType::FunctionParameter), identifier(std::move(identifier)), typeAnnotation(typeAnnotation) {}
+    FunctionParameter(std::unique_ptr<Identifier> identifier, std::unique_ptr<TypeAnnotation> typeAnnotation)
+        : Statement(NodeType::FunctionParameter), identifier(std::move(identifier)), typeAnnotation(std::move(typeAnnotation)) {}
 };
 
 class FunctionDeclaration : public Statement {
 public:
-    Identifier name;
-    std::vector<FunctionParameter> params;
-    TypeAnnotation* returnType;
-    BlockStatement body;
+    std::unique_ptr<Identifier> name;
+    std::vector<std::unique_ptr<FunctionParameter>> params;
+    std::unique_ptr<TypeAnnotation> returnType;
+    std::unique_ptr<BlockStatement> body;
 
-    FunctionDeclaration(Identifier name, const std::vector<FunctionParameter> &params, TypeAnnotation* returnType, BlockStatement body)
-        : Statement(NodeType::FunctionDeclaration),
-            name(std::move(name)),
-            params(params),
-            returnType(returnType),
-            body(std::move(body)){}
+    FunctionDeclaration(std::unique_ptr<Identifier> name,
+                        std::vector<std::unique_ptr<FunctionParameter>> &params,
+                        std::unique_ptr<TypeAnnotation> returnType, std::unique_ptr<BlockStatement> body)
+            : Statement(NodeType::FunctionDeclaration), name(std::move(name)), params(std::move(params)), returnType(std::move(returnType)), body(std::move(body)) {}
+
+};
+
+class FunctionExpression : public Expression {
+public:
+    std::vector<std::unique_ptr<FunctionParameter>> params;
+    std::unique_ptr<TypeAnnotation> returnType;
+    std::unique_ptr<BlockStatement> body;
+
+    FunctionExpression(std::vector<std::unique_ptr<FunctionParameter>> &params,
+                       std::unique_ptr<TypeAnnotation> returnType, std::unique_ptr<BlockStatement> body)
+            : Expression(NodeType::FunctionExpression), params(std::move(params)), returnType(std::move(returnType)), body(std::move(body)) {}
+
 };
 
 class ReturnStatement : public Statement {
 public:
-    Expression* argument;
+    std::unique_ptr<Expression> argument;
 
-    explicit ReturnStatement(Expression* argument) : Statement(NodeType::ReturnStatement), argument(argument) {}
+    explicit ReturnStatement(std::unique_ptr<Expression> argument) : Statement(NodeType::ReturnStatement), argument(std::move(argument)) {}
 };
 
 class IfStatement : public Statement {
 public:
-    Expression condition;
-    Statement consequent;
-    Statement* alternate;
+    std::unique_ptr<Expression> condition;
+    std::unique_ptr<Statement> consequent;
+    std::unique_ptr<Statement> alternate;
 
-    IfStatement(NodeType kind, const Expression &condition, const Statement &consequent, Statement* alternate)
-            : Statement(kind), condition(condition), consequent(consequent), alternate(alternate) {}
+    IfStatement(std::unique_ptr<Expression> condition, std::unique_ptr<Statement> consequent, std::unique_ptr<Statement> alternate)
+        : Statement(NodeType::IfStatement), condition(std::move(condition)), consequent(std::move(consequent)), alternate(std::move(alternate)) {}
+
 };
 
 class WhileStatement : public Statement {
-    Expression condition;
-    BlockStatement body;
+    std::unique_ptr<Expression> condition;
+    std::unique_ptr<BlockStatement> body;
 
 public:
-    WhileStatement(const Expression &condition, BlockStatement body)
-        : Statement(NodeType::WhileStatement), condition(condition), body(std::move(body)) {}
+    WhileStatement(std::unique_ptr<Expression> condition, std::unique_ptr<BlockStatement> body)
+        : Statement(NodeType::WhileStatement), condition(std::move(condition)), body(std::move(body)) {}
 };
 
 class DoWhileStatement : public Statement {
-    Expression condition;
-    BlockStatement body;
+    std::unique_ptr<Expression> condition;
+    std::unique_ptr<BlockStatement> body;
 
 public:
-    DoWhileStatement(const Expression &condition, BlockStatement body)
-            : Statement(NodeType::DoWhileStatement), condition(condition), body(std::move(body)) {}
+    DoWhileStatement(std::unique_ptr<Expression> condition, std::unique_ptr<BlockStatement> body)
+            : Statement(NodeType::DoWhileStatement), condition(std::move(condition)), body(std::move(body)) {}
 };
 
 class ForStatement : public Statement {
-    Identifier counter;
-    Expression startValue;
-    Expression endValue;
-    Expression* step;
-    BlockStatement body;
+    std::unique_ptr<Identifier> counter;
+    std::unique_ptr<Expression> startValue;
+    std::unique_ptr<Expression> endValue;
+    std::unique_ptr<Expression> step;
+    std::unique_ptr<BlockStatement> body;
 
 public:
-    ForStatement(Identifier counter, const Expression &startValue, const Expression &endValue,
-                 Expression *step, BlockStatement body) : Statement(NodeType::ForStatement), counter(std::move(counter)),
-                                                                 startValue(startValue), endValue(endValue), step(step),
-                                                                 body(std::move(body)) {}
+    ForStatement(std::unique_ptr<Identifier> counter, std::unique_ptr<Expression> startValue, std::unique_ptr<Expression> endValue, std::unique_ptr<Expression> step, std::unique_ptr<BlockStatement> body)
+         : Statement(NodeType::ForStatement),
+            counter(std::move(counter)),
+            startValue(std::move(startValue)),
+            endValue(std::move(endValue)),
+            step(std::move(step)),
+            body(std::move(body))
+         {}
 };
 
 class UnlessStatement : public Statement {
 public:
-    Expression condition;
-    Statement consequent;
-    Statement* alternate;
+    std::unique_ptr<Expression> condition;
+    std::unique_ptr<Statement> consequent;
+    std::unique_ptr<Statement> alternate;
 
-    UnlessStatement(const Expression &condition, const Statement &consequent, Statement* alternate)
-            : Statement(NodeType::IfStatement), condition(condition), consequent(consequent), alternate(alternate) {}
+    UnlessStatement(std::unique_ptr<Expression> condition, std::unique_ptr<Statement> consequent, std::unique_ptr<Statement> alternate)
+            : Statement(NodeType::IfStatement), condition(std::move(condition)), consequent(std::move(consequent)), alternate(std::move(alternate)) {}
 };
 
 class VariableDeclaration : public Statement {
     std::string name;
-    Expression* value;
+    std::unique_ptr<Expression> value;
 
 public:
-    VariableDeclaration(std::string name, Expression *value)
-        : Statement(NodeType::VariableDeclaration), name(std::move(name)), value(value) {}
+    VariableDeclaration(std::string name, std::unique_ptr<Expression> value)
+        : Statement(NodeType::VariableDeclaration), name(std::move(name)), value(std::move(value)) {}
 };
 
 class VariableStatement : public Statement {
 public:
-    std::vector<VariableDeclaration> declarations;
+    std::vector<std::unique_ptr<VariableDeclaration>> declarations;
     bool isConstant;
 
-    explicit VariableStatement(const std::vector<VariableDeclaration> &declarations, bool isConstant = false)
-        : Statement(NodeType::VariableStatement), declarations(declarations), isConstant(isConstant) {}
+    explicit VariableStatement(std::vector<std::unique_ptr<VariableDeclaration>> declarations, bool isConstant = false)
+        : Statement(NodeType::VariableStatement), declarations(std::move(declarations)), isConstant(isConstant) {}
 };
 
 class TypeProperty : public Statement {
     std::string name;
-    TypeAnnotation type;
+    std::unique_ptr<TypeAnnotation> type;
 
 public:
-    TypeProperty(std::string name, TypeAnnotation type)
+    TypeProperty(std::string name, std::unique_ptr<TypeAnnotation> type)
         : Statement(NodeType::TypePropertyDefinition), name(std::move(name)), type(std::move(type)) {}
 };
 
 class TypeDefinitionStatement : public Statement {
 public:
-    Identifier name;
-    Identifier* parentTypeName;
-    std::vector<TypeProperty> properties;
+    std::unique_ptr<Identifier> name;
+    std::unique_ptr<Identifier> parentTypeName;
+    std::vector<std::unique_ptr<TypeProperty>> properties;
 
-    TypeDefinitionStatement(Identifier name, Identifier *parentTypeName,
-                            const std::vector<TypeProperty> &properties) : Statement(NodeType::TypeDefinition), name(std::move(name)),
-                                                                           parentTypeName(parentTypeName),
-                                                                           properties(properties) {}
+    TypeDefinitionStatement(std::unique_ptr<Identifier> name, std::unique_ptr<Identifier> parentTypeName, std::vector<std::unique_ptr<TypeProperty>> &properties)
+        : Statement(NodeType::TypeDefinition), name(std::move(name)), parentTypeName(std::move(parentTypeName)), properties(std::move(properties)) {}
 };
 
 class ModelBlock : public Statement {
 private:
-    std::vector<Statement> body;
+    std::vector<std::unique_ptr<Statement>> body;
 
 public:
-    std::vector<Statement> getBody(){
-        return body;
+    std::vector<std::unique_ptr<Statement>> getBody(){
+        return std::move(body);
     }
 
-    void addStatement(Statement stmt){
-        if((stmt.kind == NodeType::VariableStatement) or (stmt.kind == NodeType::FunctionDeclaration)){
-            body.emplace_back(stmt);
+    void addStatement(std::unique_ptr<Statement> stmt){
+        if((stmt->kind == NodeType::VariableStatement) or (stmt->kind == NodeType::FunctionDeclaration)){
+            body.emplace_back(std::move(stmt));
         }
         throw std::runtime_error("Expected member declaration");
     }
@@ -198,24 +209,28 @@ public:
 
 class ModelDefinitionStatement : public Statement {
 public:
-    Identifier className;
-    Identifier* parentClassName;
-    FunctionDeclaration constructor;
-    ModelBlock* privateBlock;
-    ModelBlock* publicBlock;
+    std::unique_ptr<Identifier> className;
+    std::unique_ptr<Identifier> parentClassName;
+    std::unique_ptr<FunctionDeclaration> constructor;
+    std::unique_ptr<ModelBlock> privateBlock;
+    std::unique_ptr<ModelBlock> publicBlock;
 
-    ModelDefinitionStatement(Identifier className, Identifier *parentClassName,
-                             FunctionDeclaration constructor, ModelBlock *privateBlock, ModelBlock *publicBlock)
-            : Statement(NodeType::ModelDefinition), className(std::move(className)), parentClassName(parentClassName), constructor(std::move(constructor)),
-              privateBlock(privateBlock), publicBlock(publicBlock) {}
+    ModelDefinitionStatement(std::unique_ptr<Identifier> className, std::unique_ptr<Identifier> parentClassName, std::unique_ptr<FunctionDeclaration> constructor, std::unique_ptr<ModelBlock> privateBlock, std::unique_ptr<ModelBlock> publicBlock)
+            : Statement(NodeType::ModelDefinition),
+                className(std::move(className)),
+                parentClassName(std::move(parentClassName)),
+                constructor(std::move(constructor)),
+                privateBlock(std::move(privateBlock)),
+                publicBlock(std::move(publicBlock))
+            {}
 };
 
 class ImportStatement : public Statement {
 public:
     std::string packageName;
-    std::vector<Identifier>* imports;
-    ImportStatement(std::string packageName, std::vector<Identifier> *imports)
-        : Statement(NodeType::ImportStatement), packageName(std::move(packageName)), imports(imports) {}
+    std::vector<std::unique_ptr<Identifier>> imports;
+    ImportStatement(std::string packageName, std::vector<std::unique_ptr<Identifier>> imports)
+        : Statement(NodeType::ImportStatement), packageName(std::move(packageName)), imports(std::move(imports)) {}
 };
 
 

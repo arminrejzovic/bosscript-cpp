@@ -1,5 +1,3 @@
-#include <regex>
-#include <iostream>
 #include "Lexer.h"
 
 const std::map<std::string, TokenType> Lexer::keywords = {
@@ -39,7 +37,7 @@ const std::map<std::string, TokenType> Lexer::keywords = {
     {"konst", TokenType::Konst},
 };
 
-std::queue<Token> Lexer::tokenize(std::string &src, bool js) {
+std::queue<Token> Lexer::tokenize(const std::string &src, bool js) {
     std::queue<Token> tokens;
     size_t line = 1;
     size_t col = 1;

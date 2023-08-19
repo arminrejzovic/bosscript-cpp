@@ -9,8 +9,6 @@
 #include <utility>
 #include <vector>
 #include "Expression/Expression.h"
-#include "Statements.h"
-
 
 class Identifier: public Expression {
 public:
@@ -19,46 +17,46 @@ public:
     explicit Identifier(std::string symbol) : Expression(NodeType::Identifier), symbol(std::move(symbol)) {}
 };
 
-class FunctionExpression : public Expression {
-public:
-    std::vector<FunctionParameter> params;
-    TypeAnnotation* returnType;
-    BlockStatement body;
-
-    FunctionExpression(const std::vector<FunctionParameter> &params, TypeAnnotation *returnType,
-                       BlockStatement body) : Expression(NodeType::FunctionExpression), params(params), returnType(returnType),
-                                                     body(std::move(body)) {}
-};
-
 class AssignmentExpression : public Expression {
 public:
-    Expression assignee;
-    Expression value;
+    std::unique_ptr<Expression> assignee;
+    std::unique_ptr<Expression> value;
     std::string assignmentOperator;
 
-    AssignmentExpression(const Expression &assignee, const Expression &value,
-                         std::string assignmentOperator) : Expression(NodeType::AssignmentExpression), assignee(assignee), value(value),
-                                                                  assignmentOperator(std::move(assignmentOperator)) {}
+    AssignmentExpression(std::unique_ptr<Expression> assignee, std::unique_ptr<Expression> value, std::string assignmentOperator)
+        : Expression(NodeType::AssignmentExpression),
+            assignee(std::move(assignee)),
+            value(std::move(value)),
+            assignmentOperator(std::move(assignmentOperator))
+        {}
 };
 
 class MemberExpression : public Expression {
 public:
     bool isComputed;
-    Expression targetObject;
-    Expression property;
+    std::unique_ptr<Expression> targetObject;
+    std::unique_ptr<Expression> property;
 
-    MemberExpression(bool isComputed, const Expression &targetObject, const Expression &aProperty)
-            : Expression(NodeType::MemberExpression), isComputed(isComputed), targetObject(targetObject), property(aProperty) {}
+    MemberExpression(bool isComputed, std::unique_ptr<Expression> targetObject, std::unique_ptr<Expression> property)
+        : Expression(NodeType::MemberExpression),
+            isComputed(isComputed),
+            targetObject(std::move(targetObject)),
+            property(std::move(property))
+        {}
 };
 
 class LogicalExpression : public Expression {
 public:
-    Expression left;
-    Expression right;
+    std::unique_ptr<Expression> left;
+    std::unique_ptr<Expression> right;
     std::string mOperator;
 
-    LogicalExpression(const Expression &left, const Expression &right, std::string mOperator)
-            : Expression(NodeType::LogicalExpression), left(left), right(right), mOperator(std::move(mOperator)) {}
+    LogicalExpression(std::unique_ptr<Expression> left, std::unique_ptr<Expression> right, std::string mOperator)
+        : Expression(NodeType::LogicalExpression),
+            left(std::move(left)),
+            right(std::move(right)),
+            mOperator(std::move(mOperator))
+        {}
 };
 
 class JavascriptSnippet : public Expression {
@@ -70,21 +68,28 @@ public:
 
 class BinaryExpression : public Expression {
 public:
-    Expression left;
-    Expression right;
+    std::unique_ptr<Expression> left;
+    std::unique_ptr<Expression> right;
     std::string mOperator;
 
-    BinaryExpression(const Expression &left, const Expression &right, std::string mOperator)
-            : Expression(NodeType::BinaryExpression), left(left), right(right), mOperator(std::move(mOperator)) {}
+    BinaryExpression(std::unique_ptr<Expression> left, std::unique_ptr<Expression> right, std::string mOperator)
+        : Expression(NodeType::LogicalExpression),
+            left(std::move(left)),
+            right(std::move(right)),
+            mOperator(std::move(mOperator))
+        {}
 };
 
 class UnaryExpression : public Expression {
 public:
     std::string mOperator;
-    Expression operand;
+    std::unique_ptr<Expression> operand;
 
-    UnaryExpression(std::string mOperator, const Expression &operand)
-        : Expression(NodeType::UnaryExpression), mOperator(std::move(mOperator)), operand(operand) {}
+    UnaryExpression(std::string mOperator, std::unique_ptr<Expression> operand)
+        : Expression(NodeType::UnaryExpression),
+            mOperator(std::move(mOperator)),
+            operand(std::move(operand))
+        {}
 };
 
 class NumericLiteral : public Expression {
@@ -119,34 +124,45 @@ public:
 class ObjectProperty : public Expression {
 public:
     std::string key;
-    Expression value;
+    std::unique_ptr<Expression> value;
 
-    ObjectProperty(std::string key, const Expression &value)
-        : Expression(NodeType::ObjectProperty), key(std::move(key)), value(value) {}
+    ObjectProperty(std::string key, std::unique_ptr<Expression> value)
+        : Expression(NodeType::ObjectProperty),
+            key(std::move(key)),
+            value(std::move(value))
+        {}
 };
 
 class ObjectLiteral : public Expression {
 public:
-    std::vector<ObjectProperty> properties;
+    std::vector<std::unique_ptr<ObjectProperty>> properties;
 
-    explicit ObjectLiteral(const std::vector<ObjectProperty> &properties) : Expression(NodeType::Object),
-                                                                                  properties(properties) {}
+    explicit ObjectLiteral(std::vector<std::unique_ptr<ObjectProperty>> &properties)
+        : Expression(NodeType::Object),
+            properties(std::move(properties))
+        {}
 };
 
 class ArrayLiteral : public Expression {
 public:
-    std::vector<Expression> arr;
+    std::vector<std::unique_ptr<Expression>> arr;
 
-    explicit ArrayLiteral(const std::vector<Expression> &arr) : Expression(NodeType::ArrayLiteral), arr(arr) {}
+    explicit ArrayLiteral(std::vector<std::unique_ptr<Expression>> arr)
+        : Expression(NodeType::ArrayLiteral),
+            arr(std::move(arr))
+        {}
 };
 
 class CallExpression : public Expression {
 public:
-    std::vector<Expression> args;
-    Expression callee;
+    std::vector<std::unique_ptr<Expression>> args;
+    std::unique_ptr<Expression> callee;
 
-    CallExpression(const std::vector<Expression> &args, const Expression &callee)
-        : Expression(NodeType::CallExpression), args(args), callee(callee) {}
+    CallExpression(std::vector<std::unique_ptr<Expression>> args, std::unique_ptr<Expression> callee)
+        : Expression(NodeType::CallExpression),
+            args(std::move(args)),
+            callee(std::move(callee))
+        {}
 };
 
 #endif //BOSSCRIPT_EXPRESSIONS_H
