@@ -3,73 +3,73 @@
 #include "Lexer.h"
 
 const std::map<std::string, TokenType> Lexer::keywords = {
-    {"var", Var},
-    {"konst", Konst},
-    {"za", Za},
-    {"svako", Svako},
-    {"od", Od},
-    {"do", Do},
-    {"korak", Korak},
-    {"dok", Dok},
-    {"radi", Radi},
-    {"prekid", Break},
-    {"funkcija", Funkcija},
-    {"vrati", Vrati},
-    {"se", Se},
-    {"paket", Paket},
-    {"ako", Ako},
-    {"ili", Ili},
-    {"osim", Osim},
-    {"inace", Inace},
-    {"inače", Inace},
-    {"nedefinisano", Nedefinisano},
-    {"tacno", Tacno},
-    {"tačno", Tacno},
-    {"netacno", Netacno},
-    {"netačno", Netacno},
-    {"probaj", Try},
-    {"spasi", Catch},
-    {"svakako", Finally},
-    {"tip", Tip},
-    {"model", Model},
-    {"privatno", Private},
-    {"javno", Public},
-    {"konstruktor", Constructor},
-    {"konst", Konst},
-    {"konst", Konst},
+    {"var", TokenType::Var},
+    {"konst", TokenType::Konst},
+    {"za", TokenType::Za},
+    {"svako", TokenType::Svako},
+    {"od", TokenType::Od},
+    {"do", TokenType::Do},
+    {"korak", TokenType::Korak},
+    {"dok", TokenType::Dok},
+    {"radi", TokenType::Radi},
+    {"prekid", TokenType::Break},
+    {"funkcija", TokenType::Funkcija},
+    {"vrati", TokenType::Vrati},
+    {"se", TokenType::Se},
+    {"paket", TokenType::Paket},
+    {"ako", TokenType::Ako},
+    {"ili", TokenType::Ili},
+    {"osim", TokenType::Osim},
+    {"inace", TokenType::Inace},
+    {"inače", TokenType::Inace},
+    {"nedefinisano", TokenType::Nedefinisano},
+    {"tacno", TokenType::Tacno},
+    {"tačno", TokenType::Tacno},
+    {"netacno", TokenType::Netacno},
+    {"netačno", TokenType::Netacno},
+    {"probaj", TokenType::Try},
+    {"spasi", TokenType::Catch},
+    {"svakako", TokenType::Finally},
+    {"tip", TokenType::Tip},
+    {"model", TokenType::Model},
+    {"privatno", TokenType::Private},
+    {"javno", TokenType::Public},
+    {"konstruktor", TokenType::Constructor},
+    {"konst", TokenType::Konst},
+    {"konst", TokenType::Konst},
 };
 
-std::vector<Token> Lexer::tokenize(std::string &src, bool js) {
-    std::vector<Token> tokens;
+std::queue<Token> Lexer::tokenize(std::string &src, bool js) {
+    std::queue<Token> tokens;
     size_t line = 1;
     size_t col = 1;
     size_t cursor = 0;
 
     while(cursor < src.size()){
         if(src[cursor] == '('){
-            tokens.emplace_back(std::string(1, src[cursor++]), OpenParen, line, col++);
+            tokens.emplace(std::string(1, src[cursor++]), TokenType::OpenParen, line, col++);
         }
         else if(src[cursor] == ')'){
-            tokens.emplace_back(std::string(1, src[cursor++]), CloseParen, line, col++);
+            tokens.emplace(std::string(1, src[cursor++]), TokenType::CloseParen, line, col++);
         }
         else if(src[cursor] == '['){
-            tokens.emplace_back(std::string(1, src[cursor++]), OpenBracket, line, col++);
+            tokens.emplace(std::string(1, src[cursor++]), TokenType::OpenBracket, line, col++);
         }
         else if(src[cursor] == ']'){
-            tokens.emplace_back(std::string(1, src[cursor++]), CloseBracket, line, col++);
+            tokens.emplace(std::string(1, src[cursor++]), TokenType::CloseBracket, line, col++);
         }
         else if(src[cursor] == '{'){
-            tokens.emplace_back(std::string(1, src[cursor++]), OpenBrace, line, col++);
+            tokens.emplace(std::string(1, src[cursor++]), TokenType::OpenBrace, line, col++);
         }
         else if(src[cursor] == '}'){
-            tokens.emplace_back(std::string(1, src[cursor++]), CloseBrace, line, col++);
+            tokens.emplace(std::string(1, src[cursor++]), TokenType::CloseBrace, line, col++);
         }
         else if(src[cursor] == '^'){
-            tokens.emplace_back(std::string(1, src[cursor++]), Exponent, line, col++);
+            tokens.emplace(std::string(1, src[cursor++]), TokenType::Exponent, line, col++);
         }
         else if(src[cursor] == '&'){
             if (src.size() > 1 && src[1] == '&'){
-                tokens.emplace_back(std::string(1, src[cursor] + src[cursor+1]), LogicalAnd, line, col);
+                tokens.emplace("&&", TokenType::LogicalAnd, line, col);
                 cursor += 2;
                 col += 2;
             }
@@ -81,7 +81,7 @@ std::vector<Token> Lexer::tokenize(std::string &src, bool js) {
         }
         else if(src[cursor] == '|'){
             if (src.size() > 1 && src[1] == '|'){
-                tokens.emplace_back(std::string(1, src[cursor] + src[cursor+1]), LogicalOr, line, col);
+                tokens.emplace("||", TokenType::LogicalOr, line, col);
                 cursor += 2;
                 col += 2;
             }
@@ -93,76 +93,80 @@ std::vector<Token> Lexer::tokenize(std::string &src, bool js) {
         }
         else if(src[cursor] == '+' || src[cursor] == '-' || src[cursor] == '*' || src[cursor] == '/' || src[cursor] == '%'){
             if(src.size() > 1 && src[cursor + 1] == '='){
-                tokens.emplace_back(std::string(1, src[cursor] + src[cursor+1]), ComplexAssign, line, col);
+                std::string p1 = std::string(1, src[cursor]);
+                std::string p2 = std::string(1, src[cursor+1]);
+                tokens.emplace(p1 + p2, TokenType::ComplexAssign, line, col);
                 cursor += 2;
                 col += 2;
             }
             else if(src.size() > 1 && src[cursor] == '+' && src[cursor + 1] == '+'){
-                tokens.emplace_back(std::string(1, src[cursor] + src[cursor+1]), UnaryIncrement, line, col);
+                tokens.emplace("++", TokenType::UnaryIncrement, line, col);
                 cursor += 2;
                 col += 2;
             }
             else if(src.size() > 1 && src[cursor] == '-' && src[cursor + 1] == '-'){
-                tokens.emplace_back(std::string(1, src[cursor] + src[cursor+1]), UnaryDecrement, line, col);
+                tokens.emplace("--", TokenType::UnaryDecrement, line, col);
                 cursor += 2;
                 col += 2;
             }
             else{
-                tokens.emplace_back(std::string(1, src[cursor++]), BinaryOperator, line, col++);
+                tokens.emplace(std::string(1, src[cursor++]), TokenType::BinaryOperator, line, col++);
             }
         }
 
         else if(src[cursor] == '='){
             if(src.size() > 1 && src[cursor + 1] == '='){
-                tokens.emplace_back(std::string(1, src[cursor] + src[cursor+1]), EqualityOperator, line, col);
+                tokens.emplace("==", TokenType::EqualityOperator, line, col);
                 cursor += 2;
                 col += 2;
             }
             else if(src.size() > 1 && src[cursor + 1] == '>'){
-                tokens.emplace_back(std::string(1, src[cursor] + src[cursor+1]), Arrow, line, col);
+                tokens.emplace("=>", TokenType::Arrow, line, col);
                 cursor += 2;
                 col += 2;
             }
             else{
-                tokens.emplace_back(std::string(1, src[cursor++]), SimpleAssign, line, col++);
+                tokens.emplace(std::string(1, src[cursor++]), TokenType::SimpleAssign, line, col++);
             }
         }
 
         else if(src[cursor] == '!'){
             if(src.size() > 1 && src[cursor + 1] == '='){
-                tokens.emplace_back(std::string(1, src[cursor] + src[cursor+1]), EqualityOperator, line, col);
+                tokens.emplace("!=", TokenType::EqualityOperator, line, col);
                 cursor += 2;
                 col += 2;
             }
             else{
-                tokens.emplace_back(std::string(1, src[cursor++]), LogicalNot, line, col++);
+                tokens.emplace(std::string(1, src[cursor++]), TokenType::LogicalNot, line, col++);
             }
         }
 
         else if(src[cursor] == ':'){
-            tokens.emplace_back(std::string(1, src[cursor++]), Colon, line, col++);
+            tokens.emplace(std::string(1, src[cursor++]), TokenType::Colon, line, col++);
         }
         else if(src[cursor] == ';'){
-            tokens.emplace_back(std::string(1, src[cursor++]), Semicolon, line, col++);
+            tokens.emplace(std::string(1, src[cursor++]), TokenType::Semicolon, line, col++);
         }
         else if(src[cursor] == ','){
-            tokens.emplace_back(std::string(1, src[cursor++]), Comma, line, col++);
+            tokens.emplace(std::string(1, src[cursor++]), TokenType::Comma, line, col++);
         }
         else if(src[cursor] == '.'){
-            tokens.emplace_back(std::string(1, src[cursor++]), Dot, line, col++);
+            tokens.emplace(std::string(1, src[cursor++]), TokenType::Dot, line, col++);
         }
         else if(src[cursor] == '@'){
-            tokens.emplace_back(std::string(1, src[cursor++]), This, line, col++);
+            tokens.emplace(std::string(1, src[cursor++]), TokenType::This, line, col++);
         }
 
         else if(src[cursor] == '<' || src[cursor] == '>'){
             if(src.size() > 1 && src[1] == '='){
-                tokens.emplace_back(std::string(1, src[cursor] + src[cursor+1]), RelationalOperator, line, col);
+                std::string p1 = std::string(1, src[cursor]);
+                std::string p2 = std::string(1, src[cursor+1]);
+                tokens.emplace(p1 + p2, TokenType::RelationalOperator, line, col);
                 cursor += 2;
                 col += 2;
             }
             else{
-                tokens.emplace_back(std::string(1, src[cursor++]), RelationalOperator, line, col++);
+                tokens.emplace(std::string(1, src[cursor++]), TokenType::RelationalOperator, line, col++);
             }
         }
 
@@ -182,7 +186,7 @@ std::vector<Token> Lexer::tokenize(std::string &src, bool js) {
             if(src[cursor] == '"'){
                 //String literals
                 // Add the opening quotation mark
-                tokens.emplace_back(std::string(1, src[cursor++]), DoubleQuote, line, col++);
+                tokens.emplace(std::string(1, src[cursor++]), TokenType::DoubleQuote, line, col++);
                 std::string str;
                 while (!src.empty() && src[cursor] != '"'){
                     if(src[cursor] == '\\' && src.size() > 1){
@@ -211,12 +215,12 @@ std::vector<Token> Lexer::tokenize(std::string &src, bool js) {
                     }
                 }
                 // Add the string value
-                tokens.emplace_back(str, String, line, col);
+                tokens.emplace(str, TokenType::String, line, col);
                 col += str.size();
 
                 // If exists, add closing quotation mark
                 if(!src.empty() && src[cursor] == '"'){
-                    tokens.emplace_back(std::string(1, src[cursor++]), DoubleQuote, line, col++);
+                    tokens.emplace(std::string(1, src[cursor++]), TokenType::DoubleQuote, line, col++);
                 }
             }
 
@@ -230,7 +234,7 @@ std::vector<Token> Lexer::tokenize(std::string &src, bool js) {
 
                 if(std::regex_match(number, validNumberPattern)){
                     number = std::regex_replace(number, std::regex("_"), "");
-                    tokens.emplace_back(number, Number, line, col);
+                    tokens.emplace(number, TokenType::Number, line, col);
                     col += number.size();
                 }
                 else{
@@ -247,10 +251,10 @@ std::vector<Token> Lexer::tokenize(std::string &src, bool js) {
                 // Check for reserved Keywords
                 auto reservedPosition = keywords.find(identifier);
                 if (reservedPosition != keywords.end()){
-                    tokens.emplace_back(identifier, reservedPosition->second, line, col);
+                    tokens.emplace(identifier, reservedPosition->second, line, col);
                 }
                 else {
-                    tokens.emplace_back(identifier, Identifier, line, col);
+                    tokens.emplace(identifier, TokenType::Identifier, line, col);
                 }
                 col += identifier.size();
             }
@@ -273,7 +277,7 @@ std::vector<Token> Lexer::tokenize(std::string &src, bool js) {
                     throw std::runtime_error("Missing closing backtick");
                 }
                 cursor++;
-                tokens.emplace_back(snippet, Javascript, line, col);
+                tokens.emplace(snippet, TokenType::Javascript, line, col);
             }
 
             else {
@@ -282,7 +286,7 @@ std::vector<Token> Lexer::tokenize(std::string &src, bool js) {
             }
         }
     }
-    tokens.emplace_back("EOF", EndOfFile, line, col);
+    tokens.emplace("EOF", TokenType::EndOfFile, line, col);
     return tokens;
 }
 

@@ -1,3 +1,0 @@
-C:/Users/Armin/CLionProjects/bosscript/cmake-build-debug/CMakeFiles/bosscript.dir
-C:/Users/Armin/CLionProjects/bosscript/cmake-build-debug/CMakeFiles/edit_cache.dir
-C:/Users/Armin/CLionProjects/bosscript/cmake-build-debug/CMakeFiles/rebuild_cache.dir

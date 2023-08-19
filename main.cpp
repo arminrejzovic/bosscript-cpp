@@ -22,10 +22,10 @@ int main(int argc, char* argv[]) {
         std::cout << "[INFO]\n" << src << std::endl;
         std::cout << "******************************" << std::endl;
 
-        Lexer lexer;
-        auto tokens = lexer.tokenize(src, false);
-        for (const auto &item: tokens){
-            std::cout << item << std::endl;
+        auto tokens = Lexer::tokenize(src, false);
+        while (!tokens.empty()){
+            std::cout << tokens.front() << std::endl;
+            tokens.pop();
         }
     }
     else {

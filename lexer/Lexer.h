@@ -3,13 +3,14 @@
 
 #include <map>
 #include <vector>
+#include <queue>
 #include "Token.h"
 #include <stdexcept>
 
 class Lexer {
 public:
     static const std::map<std::string, TokenType> keywords;
-    std::vector<Token> tokenize(std::string &src, bool js);
+    static std::queue<Token> tokenize(std::string &src, bool js);
 
     Lexer();
 };

@@ -8,7 +8,7 @@
 #endif //BOSSCRIPT_TOKENTYPE_H
 
 
-enum TokenType {
+enum class TokenType {
     // Literals ---------------------------------
     Number,
     String,
@@ -81,7 +81,6 @@ enum TokenType {
     This,
     Private,
     Public,
-    Static,
     Try,
     Catch,
     Finally,

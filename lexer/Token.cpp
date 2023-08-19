@@ -15,7 +15,7 @@ std::string Token::getLineCol() {
 }
 
 std::ostream &operator<<(std::ostream &os, const Token &token) {
-    os << "TOKEN [" << "value: " << token.value << " type: " << token.type << " line: " << token.line << " col: "
+    os << "TOKEN [" << "value: " << token.value << " line: " << token.line << " col: "
        << token.col << "]";
     return os;
 }

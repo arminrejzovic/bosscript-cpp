@@ -1,7 +1,1 @@
-paket "matematika";
-
-funkcija main(){
-    za svako (x od 0 do 1 korak 0.01){
-        ispis(sin(x));
-    }
-}
+ako(x != a)
