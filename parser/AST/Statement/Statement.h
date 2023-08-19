@@ -6,6 +6,7 @@
 #define BOSSCRIPT_STATEMENT_H
 
 
+#include <string>
 #include "../../NodeType.h"
 
 class Statement {
@@ -13,6 +14,8 @@ public:
    NodeType kind;
 
     explicit Statement(NodeType kind);
+
+    virtual std::string toString();
 };
 
 

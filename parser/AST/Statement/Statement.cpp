@@ -5,3 +5,7 @@
 #include "Statement.h"
 
 Statement::Statement(NodeType kind) : kind(kind) {}
+
+std::string Statement::toString() {
+    return "Generic Statement";
+}

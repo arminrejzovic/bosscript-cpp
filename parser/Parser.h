@@ -35,7 +35,7 @@ private:
         return current().getLineCol();
     }
 
-    std::unique_ptr<Expression> assertValidAssignmentTarget(const Expression& node);
+    std::unique_ptr<Expression> assertValidAssignmentTarget(std::unique_ptr<Expression> node);
 
     Token expect(TokenType expectedType, const std::string& errorMessage);
 
@@ -60,8 +60,6 @@ private:
     std::unique_ptr<TypeProperty> parseTypeProperty();
 
     std::unique_ptr<Expression> parseExpressionStatement();
-
-    std::unique_ptr<Expression> parseIterationStatement();
 
     std::unique_ptr<WhileStatement> parseWhileStatement();
 
@@ -111,7 +109,7 @@ private:
 
     std::unique_ptr<Expression> parseCallMemberExpression();
 
-    std::unique_ptr<CallExpression> parseCallExpression(Expression callee);
+    std::unique_ptr<CallExpression> parseCallExpression(std::unique_ptr<Expression> callee);
 
     std::vector<std::unique_ptr<Expression>> parseArguments();
 
@@ -154,7 +152,7 @@ public:
 
     Parser(bool js, const std::queue<Token> &tokens) : js(js), tokens(tokens) {}
 
-   Program parseProgram(const std::string& src);
+    Program parseProgram(const std::string& src);
 };
 
 #endif //BOSSCRIPT_PARSER_H
