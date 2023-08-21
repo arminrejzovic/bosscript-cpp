@@ -18,7 +18,6 @@ private:
     std::queue<Token> tokens;
 
     Token current() {
-        std::cout << "Checking current token" << std::endl;
         return tokens.front();
     }
 

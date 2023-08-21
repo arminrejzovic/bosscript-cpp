@@ -119,15 +119,15 @@ std::unique_ptr<Statement> Parser::parseStatement() {
         case TokenType::Osim:
             return parseUnlessStatement();
         case TokenType::Dok:
-            parseWhileStatement();
+            return parseWhileStatement();
         case TokenType::Radi:
-            parseDoWhileStatement();
+            return parseDoWhileStatement();
         case TokenType::Za:
-            parseForStatement();
+            return parseForStatement();
         case TokenType::Break:
-            parseBreakStatement();
+            return parseBreakStatement();
         case TokenType::Funkcija:
-            parseFunctionDeclaration();
+            return parseFunctionDeclaration();
         case TokenType::Vrati:
             return parseReturnStatement();
         case TokenType::Tip:
@@ -372,6 +372,10 @@ std::unique_ptr<Expression> Parser::parseMemberExpression() {
                     std::move(targetObject)
             );
         }
+
+        if(thisExpressionFlag){
+            thisExpressionFlag = false;
+        }
     }
     return targetObject;
 }
@@ -606,7 +610,7 @@ std::unique_ptr<FunctionExpression> Parser::parseFunctionExpression() {
     if (current().type == TokenType::Arrow) {
         consume();
         std::vector<std::unique_ptr<Statement>> blockBody;
-        blockBody.emplace_back(parseExpression());
+        blockBody.emplace_back(std::make_unique<ReturnStatement>(parseExpression()));
         body = std::make_unique<BlockStatement>(std::move(blockBody));
     }
     else {
@@ -864,7 +868,9 @@ std::unique_ptr<ModelDefinitionStatement> Parser::parseModelDefinitionStatement(
 
             expect(TokenType::CloseParen, "Missing ')'");
 
+            std::cout << "BEFORE BLOCK STATEMENT" << std::endl;
             auto functionBody = parseBlockStatement();
+            std::cout << "AFTER BLOCK STATEMENT" << std::endl;
 
             constructor = std::make_unique<FunctionDeclaration>(
                     std::move(std::make_unique<Identifier>("konstruktor")),
@@ -899,8 +905,6 @@ std::unique_ptr<ModelDefinitionStatement> Parser::parseModelDefinitionStatement(
             std::move(privateBlock),
             std::move(publicBlock)
     );
-
-    throw std::runtime_error("NOT IMPLEMENTED");
 }
 
 std::unique_ptr<ModelBlock> Parser::parseModelBlock() {
