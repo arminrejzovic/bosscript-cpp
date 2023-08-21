@@ -9,15 +9,24 @@
 #include <string>
 #include <optional>
 #include <memory>
+#include <sstream>
 
 class EmptyStatement : public Statement {
 public:
     explicit EmptyStatement() : Statement(NodeType::EmptyStatement){}
+
+    std::string toString() override {
+        return "EMPTY_STATEMENT";
+    }
 };
 
 class BreakStatement : public Statement {
 public:
     explicit BreakStatement() : Statement(NodeType::BreakStatement){}
+
+    std::string toString() override {
+        return "BREAK_STATEMENT";
+    }
 };
 
 class Program : public Statement {
@@ -25,6 +34,17 @@ public:
     std::vector<std::unique_ptr<Statement>> body;
 
     explicit Program(std::vector<std::unique_ptr<Statement>> body) : Statement(NodeType::Program), body(std::move(body)) {}
+
+    std::string toString() override {
+        std::stringstream ss;
+        ss << "Program { \n\t body: [\n";
+        for (const auto &statement: body){
+            ss << statement->toString();
+            ss << ", \n";
+        }
+        ss << "]";
+        return ss.str();
+    }
 };
 
 
@@ -71,7 +91,7 @@ public:
     std::unique_ptr<BlockStatement> body;
 
     FunctionDeclaration(std::unique_ptr<Identifier> name,
-                        std::vector<std::unique_ptr<FunctionParameter>> &params,
+                        std::vector<std::unique_ptr<FunctionParameter>> params,
                         std::unique_ptr<TypeAnnotation> returnType, std::unique_ptr<BlockStatement> body)
             : Statement(NodeType::FunctionDeclaration), name(std::move(name)), params(std::move(params)), returnType(std::move(returnType)), body(std::move(body)) {}
 
@@ -186,7 +206,7 @@ public:
     std::unique_ptr<Identifier> parentTypeName;
     std::vector<std::unique_ptr<TypeProperty>> properties;
 
-    TypeDefinitionStatement(std::unique_ptr<Identifier> name, std::unique_ptr<Identifier> parentTypeName, std::vector<std::unique_ptr<TypeProperty>> &properties)
+    TypeDefinitionStatement(std::unique_ptr<Identifier> name, std::unique_ptr<Identifier> parentTypeName, std::vector<std::unique_ptr<TypeProperty>> properties)
         : Statement(NodeType::TypeDefinition), name(std::move(name)), parentTypeName(std::move(parentTypeName)), properties(std::move(properties)) {}
 };
 

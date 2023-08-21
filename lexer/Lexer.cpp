@@ -66,7 +66,7 @@ std::queue<Token> Lexer::tokenize(const std::string &src, bool js) {
             tokens.emplace(std::string(1, src[cursor++]), TokenType::Exponent, line, col++);
         }
         else if(src[cursor] == '&'){
-            if (src.size() > 1 && src[1] == '&'){
+            if (src.size() > 1 && src[cursor + 1] == '&'){
                 tokens.emplace("&&", TokenType::LogicalAnd, line, col);
                 cursor += 2;
                 col += 2;
@@ -78,7 +78,7 @@ std::queue<Token> Lexer::tokenize(const std::string &src, bool js) {
             }
         }
         else if(src[cursor] == '|'){
-            if (src.size() > 1 && src[1] == '|'){
+            if (src.size() > 1 && src[cursor + 1] == '|'){
                 tokens.emplace("||", TokenType::LogicalOr, line, col);
                 cursor += 2;
                 col += 2;
@@ -156,7 +156,7 @@ std::queue<Token> Lexer::tokenize(const std::string &src, bool js) {
         }
 
         else if(src[cursor] == '<' || src[cursor] == '>'){
-            if(src.size() > 1 && src[1] == '='){
+            if(src.size() > 1 && src[cursor + 1] == '='){
                 std::string p1 = std::string(1, src[cursor]);
                 std::string p2 = std::string(1, src[cursor+1]);
                 tokens.emplace(p1 + p2, TokenType::RelationalOperator, line, col);
@@ -280,7 +280,9 @@ std::queue<Token> Lexer::tokenize(const std::string &src, bool js) {
 
             else {
                 // Something unexpected
-                throw std::runtime_error("Unexpected token found at[$line:$col]: '${src[cursor]}'");
+                std::stringstream ss;
+                ss << "Unexpected token found: " << src[cursor] << " at " << line << ":" << col;
+                throw std::runtime_error(ss.str());
             }
         }
     }

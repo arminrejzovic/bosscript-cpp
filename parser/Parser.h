@@ -18,6 +18,7 @@ private:
     std::queue<Token> tokens;
 
     Token current() {
+        std::cout << "Checking current token" << std::endl;
         return tokens.front();
     }
 
@@ -38,6 +39,8 @@ private:
     std::unique_ptr<Expression> assertValidAssignmentTarget(std::unique_ptr<Expression> node);
 
     Token expect(TokenType expectedType, const std::string& errorMessage);
+
+    Token* expectPtr(TokenType expectedType, const std::string& errorMessage);
 
     void warning(const std::string& message);
 

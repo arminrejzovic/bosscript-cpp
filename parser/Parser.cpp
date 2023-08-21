@@ -9,6 +9,15 @@ Token Parser::expect(TokenType expectedType, const std::string &errorMessage) {
     return t;
 }
 
+Token* Parser::expectPtr(TokenType expectedType, const std::string &errorMessage) {
+    if(current().type != expectedType){
+        throw std::runtime_error(errorMessage);
+    }
+    Token& t = tokens.front();
+    tokens.pop();
+    return &t;
+}
+
 std::unique_ptr<Expression> Parser::assertValidAssignmentTarget(std::unique_ptr<Expression> node) {
     if ((node->kind == NodeType::Identifier) || (node->kind == NodeType::MemberExpression)) {
         return node;
@@ -125,6 +134,8 @@ std::unique_ptr<Statement> Parser::parseStatement() {
             return parseTypeDefinitionStatement();
         case TokenType::Model:
             return parseModelDefinitionStatement();
+        case TokenType::Paket:
+            return parseImportStatement();
         case TokenType::Try:
             return parseTryCatchStatement();
         default:
@@ -380,8 +391,7 @@ std::vector<std::unique_ptr<Expression>> Parser::parseArgumentList() {
     std::vector<std::unique_ptr<Expression>> argList;
     do {
         argList.emplace_back(parseExpression());
-        expect(TokenType::Comma, "Nedostaje ','");
-    } while (current().type == TokenType::Comma);
+    } while (current().type == TokenType::Comma && expectPtr(TokenType::Comma, "Nedostaje ','") != nullptr);
 
     return argList;
 }
@@ -404,11 +414,12 @@ std::unique_ptr<ArrayLiteral> Parser::parseArrayLiteral() {
     std::vector<std::unique_ptr<Expression>> array;
     expect(TokenType::OpenBracket, "Nedostaje [");
 
+
     do {
+        if(current().type == TokenType::CloseBracket) break;
         auto exp = parseExpression();
         array.emplace_back(std::move(exp));
-        expect(TokenType::Comma, "Nedostaje ','");
-    } while (current().type == TokenType::Comma);
+    } while (current().type == TokenType::Comma && expectPtr(TokenType::Comma, "Nedostaje ','") != nullptr);
 
     expect(TokenType::CloseBracket, "Nedostaje ]");
 
@@ -463,8 +474,7 @@ std::vector<std::unique_ptr<VariableDeclaration>> Parser::parseVariableDeclarati
 
     do {
         declarations.emplace_back(parseVariableDeclaration());
-        expect(TokenType::Comma, "Expected ,");
-    } while (current().type == TokenType::Comma);
+    } while (current().type == TokenType::Comma && expectPtr(TokenType::Comma, "Expected ,") != nullptr);
 
     return declarations;
 }
@@ -503,11 +513,402 @@ std::unique_ptr<BlockStatement> Parser::parseBlockStatement() {
     return std::make_unique<BlockStatement>(std::move(body));
 }
 
+std::unique_ptr<ReturnStatement> Parser::parseReturnStatement() {
+    expect(TokenType::Vrati, "Missing return statement");
+    std::unique_ptr<Expression> argument;
+    if (current().type != TokenType::Se) {
+        argument = parseExpression();
+    }
+    else {
+        expect(TokenType::Se, "Nedostaje ključna riječ 'se'. Povrat bez povratne vrijednosti se piše 'vrati se'");
+    }
+    expect(TokenType::Semicolon, "Nedostaje ';'");
 
+    return std::make_unique<ReturnStatement>(std::move(argument));
+}
 
+std::unique_ptr<FunctionDeclaration> Parser::parseFunctionDeclaration() {
+    expect(TokenType::Funkcija, "Nedostaje ključna riječ 'funkcija'");
+    auto functionName = parseIdentifier();
+    expect(TokenType::OpenParen, "Nedostaje '('");
 
+    std::vector<std::unique_ptr<FunctionParameter>> params;
+    if (current().type != TokenType::CloseParen) {
+        params = parseFormalParameterList();
+    }
+    expect(TokenType::CloseParen, "Nedostaje ')'");
 
+    std::unique_ptr<TypeAnnotation> returnType;
 
+    if (current().type == TokenType::Colon) {
+        // Non-void return type specified
+        consume();
+        returnType = parseTypeAnnotation();
+    }
 
+    std::unique_ptr<BlockStatement> body;
 
+    if (current().type == TokenType::Arrow) {
+        consume();
+        std::vector<std::unique_ptr<Statement>> blockBody;
+        blockBody.emplace_back(parseExpression());
+        body = std::make_unique<BlockStatement>(std::move(blockBody));
+    }
+    else {
+        body = parseBlockStatement();
+    }
 
+    return std::make_unique<FunctionDeclaration>(
+            std::move(functionName),
+            std::move(params),
+            std::move(returnType),
+            std::move(body)
+    );
+}
+
+std::vector<std::unique_ptr<FunctionParameter>> Parser::parseFormalParameterList() {
+    std::vector<std::unique_ptr<FunctionParameter>> params;
+
+    do {
+        auto name = parseIdentifier();
+        std::cout<<name->symbol<<std::endl;
+        std::unique_ptr<TypeAnnotation> type;
+        if(current().type == TokenType::Colon){
+            consume();
+            type = parseTypeAnnotation();
+        }
+        params.emplace_back(std::make_unique<FunctionParameter>(std::move(name), std::move(type)));
+    } while (current().type == TokenType::Comma && (expectPtr(TokenType::Comma, "Missing comma") != nullptr));
+
+    return params;
+}
+
+std::unique_ptr<FunctionExpression> Parser::parseFunctionExpression() {
+    expect(TokenType::Funkcija, "Deklaracija funkcije počinje sa 'funkcija'");
+    expect(TokenType::OpenParen, "Nedostaje (");
+
+    std::vector<std::unique_ptr<FunctionParameter>> params;
+    if (current().type != TokenType::CloseParen) {
+        params = parseFormalParameterList();
+    }
+    expect(TokenType::CloseParen, "Nedostaje ')'");
+
+    std::unique_ptr<TypeAnnotation> returnType;
+
+    if (current().type == TokenType::Colon) {
+        // Non-void return type specified
+        consume();
+        returnType = parseTypeAnnotation();
+    }
+
+    std::unique_ptr<BlockStatement> body;
+
+    if (current().type == TokenType::Arrow) {
+        consume();
+        std::vector<std::unique_ptr<Statement>> blockBody;
+        blockBody.emplace_back(parseExpression());
+        body = std::make_unique<BlockStatement>(std::move(blockBody));
+    }
+    else {
+        body = parseBlockStatement();
+    }
+
+    return std::make_unique<FunctionExpression>(
+            params,
+            std::move(returnType),
+            std::move(body)
+    );
+}
+
+std::unique_ptr<TryCatchStatement> Parser::parseTryCatchStatement() {
+    expect(TokenType::Try, "Nedostaje ključna riječ 'probaj'");
+    auto tryBlock = parseBlockStatement();
+    expect(TokenType::Catch, "Nedostaje 'probaj' blok");
+    auto catchBlock = parseBlockStatement();
+    std::unique_ptr<BlockStatement> finallyBlock;
+    if (current().type == TokenType::Finally) {
+        consume(/* finally */);
+        finallyBlock = parseBlockStatement();
+    }
+    return std::make_unique<TryCatchStatement>(
+            std::move(tryBlock),
+            std::move(catchBlock),
+            std::move(finallyBlock)
+    );
+}
+
+std::unique_ptr<ImportStatement> Parser::parseImportStatement() {
+    expect(TokenType::Paket, "Nedostaje ključna riječ 'paket'");
+    auto packageName = parseStringLiteral();
+    std::vector<std::unique_ptr<Identifier>> imports;
+    if (current().type == TokenType::Semicolon) {
+        // Full package import
+        consume(/*semicolon*/);
+        return std::make_unique<ImportStatement>(
+                packageName->value,
+                std::move(imports)
+        );
+    }
+
+    expect(TokenType::OpenBrace, "Nedostaje '{'");
+    do {
+        imports.emplace_back(parseIdentifier());
+    } while (current().type != TokenType::CloseBrace && expectPtr(TokenType::Comma, "Nedostaje zarez ',' između članova paketa") !=
+                                                                       nullptr);
+
+    expect(TokenType::CloseBrace, "Nedostaje '}' na kraju liste članova paketa");
+    expect(TokenType::Semicolon, "Nedostaje ;");
+
+    return std::make_unique<ImportStatement>(
+            packageName->value,
+            std::move(imports)
+    );
+}
+
+std::unique_ptr<TypeDefinitionStatement> Parser::parseTypeDefinitionStatement() {
+    expect(TokenType::Tip, "Nedostaje ključna riječ tip na početku deklaracije novog tipa");
+    auto name = parseIdentifier();
+    std::unique_ptr<Identifier> parentType;
+    if (current().value == "<") {
+        // Inheritance
+        consume(/* < */);
+        parentType = parseIdentifier();
+    }
+
+    expect(TokenType::OpenBrace, " Nedostaje '{'. Deklaracija tipa je ograničena vitičastim zagradama.");
+    std::vector<std::unique_ptr<TypeProperty>> properties;
+
+    while (current().type != TokenType::EndOfFile && current().type != TokenType::CloseBrace) {
+        properties.emplace_back(parseTypeProperty());
+    }
+    expect(TokenType::CloseBrace, "Nedostaje }");
+
+    if (properties.empty()) {
+        warning("Tip " + name->symbol + " je prazan");
+    }
+
+    return std::make_unique<TypeDefinitionStatement>(
+            std::move(name),
+            std::move(parentType),
+            std::move(properties)
+    );
+}
+
+std::unique_ptr<TypeProperty> Parser::parseTypeProperty() {
+    std::string name = expect(TokenType::Identifier, "").value;
+
+    expect(TokenType::Colon, "Nedostaje :");
+    auto type = parseTypeAnnotation();
+    expect(TokenType::Semicolon, "Nedostaje ;");
+
+    return std::make_unique<TypeProperty>(
+            std::move(name),
+            std::move(type)
+    );
+}
+
+std::unique_ptr<WhileStatement> Parser::parseWhileStatement() {
+    expect(TokenType::Dok, "Nedostaje 'dok'");
+    expect(TokenType::OpenParen, "Nedostaje '('");
+    auto condition = parseExpression();
+    expect(TokenType::CloseParen, "Nedostaje ')'");
+
+    // Same rules like in for-loop (shorthand and full loop)
+    std::vector<std::unique_ptr<Statement>> blockBody;
+    auto loopBody = std::make_unique<BlockStatement>(std::move(blockBody));
+
+    if (current().type == TokenType::Arrow) {
+        // Shorthand syntax
+        consume(/*Arrow*/);
+        loopBody->body.emplace_back(parseStatement());
+    }
+    else {
+        loopBody = parseBlockStatement();
+    }
+
+    return std::make_unique<WhileStatement>(
+            std::move(condition),
+            std::move(loopBody)
+    );
+}
+
+std::unique_ptr<DoWhileStatement> Parser::parseDoWhileStatement() {
+    expect(TokenType::Radi, "Expected 'radi'");
+    auto body = parseBlockStatement();
+    expect(TokenType::Dok, "Expected 'dok' after 'radi'");
+    expect(TokenType::OpenParen, "Expected '('");
+    auto condition = parseExpression();
+    expect(TokenType::CloseParen, "Expected ')'");
+    expect(TokenType::Semicolon, "Missing ';'");
+
+    return std::make_unique<DoWhileStatement>(
+            std::move(condition),
+            std::move(body)
+    );
+}
+
+std::unique_ptr<ForStatement> Parser::parseForStatement() {
+    expect(TokenType::Za, "Expected 'za'");
+    expect(TokenType::Svako, "Missing 'svako' following 'za'");
+    expect(TokenType::OpenParen, "Expected '('");
+    auto counter = parseIdentifier();
+    expect(TokenType::Od, "Expected starting condition for loop, missing keyword 'od'");
+    auto startCondition = parseExpression();
+    expect(TokenType::Do, "Expected ending condition for loop, missing keyword 'do'");
+    auto endCondition = parseExpression();
+    std::unique_ptr<Expression> step;
+    if (current().type == TokenType::Korak) {
+        consume(/*korak*/);
+        step = parseExpression();
+    }
+    expect(TokenType::CloseParen, "Expected ')'");
+
+    // For Statement body must be Block Statement
+    // But shorthand syntax for single-line for loops is allowed: za svako(...) => ispis();
+    // Shorthand syntax is parsed as BlockStatement(body=<the single expression>)
+    std::vector<std::unique_ptr<Statement>> blockBody;
+    auto loopBody = std::make_unique<BlockStatement>(std::move(blockBody));
+
+    if (current().type == TokenType::Arrow) {
+        // Shorthand syntax
+        consume(/*Arrow*/);
+        loopBody->body.emplace_back(parseStatement());
+    } else {
+        // Regular loop
+        loopBody = parseBlockStatement();
+    }
+
+    return std::make_unique<ForStatement>(
+            std::move(counter),
+            std::move(startCondition),
+            std::move(endCondition),
+            std::move(step),
+            std::move(loopBody)
+    );
+}
+
+std::unique_ptr<BreakStatement> Parser::parseBreakStatement() {
+    expect(TokenType::Break, "Expected 'prekid'");
+    return std::make_unique<BreakStatement>();
+}
+
+std::unique_ptr<IfStatement> Parser::parseIfStatement() {
+    expect(TokenType::Ako, "Expected 'ako'");
+    expect(TokenType::OpenParen, "Expected '('");
+    auto condition = parseExpression();
+    expect(TokenType::CloseParen, "Expected ')'");
+    auto consequent = parseStatement();
+
+    std::unique_ptr<Statement> alternate;
+    if (current().type == TokenType::Ili) {
+        consume();
+        alternate = parseIfStatement();
+    } else if (current().type == TokenType::Inace) {
+        consume();
+        alternate = parseStatement();
+    }
+
+    return std::make_unique<IfStatement>(
+            std::move(condition),
+            std::move(consequent),
+            std::move(alternate)
+    );
+}
+
+std::unique_ptr<UnlessStatement> Parser::parseUnlessStatement() {
+    expect(TokenType::Osim, "Expected 'osim'");
+    expect(TokenType::Ako, "Expected 'ako'");
+    expect(TokenType::OpenParen, "Expected '('");
+    auto condition = parseExpression();
+    expect(TokenType::CloseParen, "Expected ')'");
+    auto consequent = parseStatement();
+
+    std::unique_ptr<Statement> alternate;
+    if (current().type == TokenType::Inace) {
+        consume();
+        alternate = parseStatement();
+    }
+
+    return std::make_unique<UnlessStatement>(
+            std::move(condition),
+            std::move(consequent),
+            std::move(alternate)
+    );
+}
+
+std::unique_ptr<ModelDefinitionStatement> Parser::parseModelDefinitionStatement() {
+    expect(TokenType::Model, "Expected 'model'");
+    auto classname = parseIdentifier();
+    std::unique_ptr<Identifier> parentClassName;
+    std::unique_ptr<ModelBlock> privateBlock;
+    std::unique_ptr<ModelBlock> publicBlock;
+    std::unique_ptr<FunctionDeclaration> constructor;
+
+    if (current().value == "<") {
+        consume();
+        parentClassName = parseIdentifier();
+    }
+
+    expect(TokenType::OpenBrace, "Expected '{'");
+
+    while(current().type != TokenType::CloseBrace){
+        if(current().type == TokenType::Constructor && !constructor){
+            consume();
+            expect(TokenType::OpenParen, "Expected (");
+
+            std::vector<std::unique_ptr<FunctionParameter>> params;
+
+            if (current().type != TokenType::CloseParen) {
+                params = parseFormalParameterList();
+            }
+
+            expect(TokenType::CloseParen, "Missing ')'");
+
+            auto functionBody = parseBlockStatement();
+
+            constructor = std::make_unique<FunctionDeclaration>(
+                    std::move(std::make_unique<Identifier>("konstruktor")),
+                    std::move(params),
+                    nullptr,
+                    std::move(functionBody)
+            );
+        }
+        else if (current().type == TokenType::Private && !privateBlock) {
+            consume();
+            privateBlock = parseModelBlock();
+        }
+        else if (current().type == TokenType::Public && !publicBlock) {
+            consume();
+            publicBlock = parseModelBlock();
+        }
+        else {
+            throw std::runtime_error("Expecting private or public block, or constructor");
+        }
+    }
+
+    expect(TokenType::CloseBrace, "Expected '}'");
+
+    if(!constructor){
+        throw std::runtime_error("Nedostaje konstruktor. Model mora imati konstruktor!");
+    }
+
+    return std::make_unique<ModelDefinitionStatement>(
+            std::move(classname),
+            std::move(parentClassName),
+            std::move(constructor),
+            std::move(privateBlock),
+            std::move(publicBlock)
+    );
+
+    throw std::runtime_error("NOT IMPLEMENTED");
+}
+
+std::unique_ptr<ModelBlock> Parser::parseModelBlock() {
+    expect(TokenType::OpenBrace, "Expected '{'");
+    std::unique_ptr<ModelBlock> modelBlock;
+    while (current().type != TokenType::CloseBrace) {
+        modelBlock->addStatement(parseStatement());
+    }
+    expect(TokenType::CloseBrace, "Expected '}'");
+    return modelBlock;
+}
