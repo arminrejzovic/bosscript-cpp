@@ -10,6 +10,7 @@
 #include <optional>
 #include <memory>
 #include <sstream>
+#include <iostream>
 
 class EmptyStatement : public Statement {
 public:
@@ -220,10 +221,17 @@ public:
     }
 
     void addStatement(std::unique_ptr<Statement> stmt){
-        if((stmt->kind == NodeType::VariableStatement) or (stmt->kind == NodeType::FunctionDeclaration)){
+        if((stmt->kind == NodeType::VariableStatement) or (stmt->kind == NodeType::FunctionDeclaration) or (stmt->kind == NodeType::EmptyStatement)){
             body.emplace_back(std::move(stmt));
         }
-        throw std::runtime_error("Expected member declaration");
+        else {
+            std::cerr << "Expected Variable statement or Function Declaration, got" << (int)stmt->kind << std::endl;
+            throw std::runtime_error("Expected member declaration");
+        }
+    }
+
+    explicit ModelBlock() : Statement(NodeType::ModelBlock) {
+        body = std::vector<std::unique_ptr<Statement>>();
     }
 };
 

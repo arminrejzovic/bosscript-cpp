@@ -1,5 +1,9 @@
-model Korisnik{
-    konstruktor(a, b, c){
-        @x = 10;
-    }
-}
+model Nastavnik < Korisnik {
+                privatno {
+                    var x = 10;
+                }
+                konstruktor(){}
+                javno {
+                   var z = "Z";
+                }
+            }
