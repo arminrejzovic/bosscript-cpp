@@ -25,7 +25,7 @@ int main(int argc, char* argv[]) {
         auto program = p.parseProgram(src);
         auto stop = high_resolution_clock::now();
         auto duration = duration_cast<milliseconds>(stop - start);
-        std::cout << "Program parsed in" << duration.count() << "ms" << std::endl;
+        std::cout << "Program parsed in " << duration.count() << "ms" << std::endl;
     }
     else {
         std::cout << "Failed to open file " << filename << std::endl;

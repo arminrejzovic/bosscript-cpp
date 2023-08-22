@@ -344,7 +344,18 @@ std::unique_ptr<Expression> Parser::parseMemberExpression() {
     }
 
     while (current().type == TokenType::Dot || current().type == TokenType::OpenBracket || current().type == TokenType::OpenParen || thisExpressionFlag){
-        if (current().type == TokenType::Dot) {
+        if(thisExpressionFlag){
+            // @member expression
+            auto property = parseIdentifier();
+            targetObject = std::make_unique<MemberExpression>(
+                    false,
+                    std::move(targetObject),
+                    std::move(property)
+            );
+            thisExpressionFlag = false;
+        }
+
+        else if (current().type == TokenType::Dot) {
             consume();
             auto property = parseIdentifier();
             targetObject = std::make_unique<MemberExpression>(
@@ -371,10 +382,6 @@ std::unique_ptr<Expression> Parser::parseMemberExpression() {
                     parseArguments(),
                     std::move(targetObject)
             );
-        }
-
-        if(thisExpressionFlag){
-            thisExpressionFlag = false;
         }
     }
     return targetObject;
@@ -467,6 +474,7 @@ std::unique_ptr<VariableStatement> Parser::parseVariableStatement() {
         throw std::runtime_error("Pronađen neočekivan token. Očekivano var ili konst");
     }
     auto declarations = parseVariableDeclarationList();
+    expect(TokenType::Semicolon, "Nedostaje ;");
     return std::make_unique<VariableStatement>(
             std::move(declarations),
             modifier.type == TokenType::Konst
@@ -575,7 +583,6 @@ std::vector<std::unique_ptr<FunctionParameter>> Parser::parseFormalParameterList
 
     do {
         auto name = parseIdentifier();
-        std::cout<<name->symbol<<std::endl;
         std::unique_ptr<TypeAnnotation> type;
         if(current().type == TokenType::Colon){
             consume();
@@ -868,9 +875,7 @@ std::unique_ptr<ModelDefinitionStatement> Parser::parseModelDefinitionStatement(
 
             expect(TokenType::CloseParen, "Missing ')'");
 
-            std::cout << "BEFORE BLOCK STATEMENT" << std::endl;
             auto functionBody = parseBlockStatement();
-            std::cout << "AFTER BLOCK STATEMENT" << std::endl;
 
             constructor = std::make_unique<FunctionDeclaration>(
                     std::move(std::make_unique<Identifier>("konstruktor")),
@@ -909,7 +914,7 @@ std::unique_ptr<ModelDefinitionStatement> Parser::parseModelDefinitionStatement(
 
 std::unique_ptr<ModelBlock> Parser::parseModelBlock() {
     expect(TokenType::OpenBrace, "Expected '{'");
-    std::unique_ptr<ModelBlock> modelBlock;
+    std::unique_ptr<ModelBlock> modelBlock = std::make_unique<ModelBlock>();
     while (current().type != TokenType::CloseBrace) {
         modelBlock->addStatement(parseStatement());
     }

@@ -1,5 +1,47 @@
-model Korisnik{
-    konstruktor(a, b, c){
-        @x = 10;
+model DupliBroj {
+    konstruktor(x, y){
+        @x = x;
+        @y = y;
     }
+
+    javno {
+        var x, y;
+
+        funkcija plus(drugi: DupliBroj){
+            vrati DupliBroj(@x + drugi.x, @y + drugi.y);
+        }
+
+        funkcija minus(drugi: DupliBroj){
+            vrati DupliBroj(@x - drugi.x, @y - drugi.y);
+        }
+
+        funkcija puta(drugi: DupliBroj){
+            vrati DupliBroj(@x * drugi.x, @y * drugi.y);
+        }
+
+        funkcija podijeljeno(drugi: DupliBroj){
+            vrati DupliBroj(@x / drugi.x, @y / drugi.y);
+        }
+
+        funkcija manjeOd(drugi: DupliBroj): logicki {
+            vrati (@x < drugi.x) && (@y < drugi.y);
+        }
+
+        funkcija veceOd(drugi: DupliBroj): logicki {
+            vrati !@manjeOd(drugi);
+        }
+
+        funkcija jednako(drugi: DupliBroj): logicki {
+            vrati (@x == drugi.x) && (@y == drugi.y);
+        }
+
+        funkcija nijeJednako(drugi: DupliBroj): logicki {
+            vrati !@jednako(drugi);
+        }
+    }
+}
+
+funkcija main() {
+    var db = DupliBroj(3, 4);
+    ispis(db);
 }
